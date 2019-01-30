@@ -45,7 +45,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
 				if message.Text == "抽" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://i.imgur.com/TK2NkUc.jpg", "https://i.imgur.com/TK2NkUc.jpg")).Do(); err != nil {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://imgur.com/JPfUBeF", "https://imgur.com/JPfUBeF")).Do(); err != nil {
 						log.Print(err)
 					}
 				} else if message.Text == "機吧毛" {
