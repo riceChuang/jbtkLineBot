@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/line/line-bot-sdk-go/linebot"
-	"github.com/riceChuang/jbtkLineBot/types"
 )
 
 var bot *linebot.Client
@@ -18,14 +17,20 @@ func main() {
 	log.Println("Bot:", bot, " err:", err)
 	http.HandleFunc("/back", callbackHandler)
 	port := os.Getenv("PORT")
-	addr := fmt.Sprintf(":%s", port)
+	addr := ""
+	if port != ""{
+		addr = fmt.Sprintf(":%s", port)
+	}else{
+		addr = ":3000"
+	}
+
 	http.ListenAndServe(addr, nil)
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	events, err := bot.ParseRequest(r)
-	config := types.New("app.yml")
-	fmt.Println(config.Images[0])
+	//config := types.New("app.yml")
+	//fmt.Println(config.Images[0])
 	if err != nil {
 		if err == linebot.ErrInvalidSignature {
 			w.WriteHeader(400)

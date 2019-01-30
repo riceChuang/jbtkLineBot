@@ -25,7 +25,9 @@
 #   unused-packages = true
 
 [metadata.heroku]
-  root-package = "main"
+  root-package = "github.com/riceChuang/jbtkLineBot"
+  go-version = "go1.11.4"
+  install = [ "./..." ]
 
 [prune]
   go-tests = true
