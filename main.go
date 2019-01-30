@@ -7,20 +7,23 @@ import (
 	"os"
 
 	"github.com/line/line-bot-sdk-go/linebot"
+	"github.com/riceChuang/jbtkLineBot/crawler"
+	"math/rand"
 )
 
 var bot *linebot.Client
 
 func main() {
+	go crawler.GetFileList()
 	var err error
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
 	http.HandleFunc("/back", callbackHandler)
 	port := os.Getenv("PORT")
 	addr := ""
-	if port != ""{
+	if port != "" {
 		addr = fmt.Sprintf(":%s", port)
-	}else{
+	} else {
 		addr = ":3000"
 	}
 
@@ -45,7 +48,9 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
 				if message.Text == "抽" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://imgur.com/JPfUBeF", "https://imgur.com/JPfUBeF")).Do(); err != nil {
+					imageIndex := rand.Intn(len(crawler.ImageMap))
+					fmt.Println("my image link: %v", imageIndex)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(crawler.ImageMap[imageIndex], crawler.ImageMap[imageIndex])).Do(); err != nil {
 						log.Print(err)
 					}
 				} else if message.Text == "機吧毛" {
