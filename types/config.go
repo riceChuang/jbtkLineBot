@@ -11,7 +11,7 @@ import (
 )
 
 type Configuration struct {
-	Images []string `yaml:"images"`
+	BeautyUrl string `yaml:"beautyurl"`
 }
 
 func New(fileName string) *Configuration {
@@ -41,3 +41,4 @@ func New(fileName string) *Configuration {
 
 	return &c
 }
+
