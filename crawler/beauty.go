@@ -3,20 +3,26 @@ package crawler
 import (
 	"fmt"
 	"github.com/gocolly/colly"
+	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"strconv"
 	"strings"
 )
 
 type BeautyCrawler struct {
 	ContentUrl chan string
 	ImageUrl   chan string
+	db         *boltdb.Boltdb
 }
 
-var ImageMap []string
+var (
+	ImageLengh int
+)
 
-func NewBeautyCrawler() *BeautyCrawler{
+func NewBeautyCrawler(db *boltdb.Boltdb) *BeautyCrawler {
 	b := &BeautyCrawler{
 		ContentUrl: make(chan string, 10000),
 		ImageUrl:   make(chan string, 10000),
+		db:         db,
 	}
 
 	for i := 0; i < 2; i++ {
@@ -46,7 +52,7 @@ func (b *BeautyCrawler) GetmainPage(url string) {
 		link := e.Attr("href")
 		// Print link
 		if strings.Contains(e.Text, "上頁") {
-			fmt.Printf("Link found: %q -> %s\n", e.Text, link)
+			//fmt.Printf("Link found: %q -> %s\n", e.Text, link)
 			mainPage.Visit(e.Request.AbsoluteURL(link))
 		}
 	})
@@ -72,7 +78,7 @@ func (b *BeautyCrawler) RunContenPage() {
 			class := e.Attr("class")
 			if class == "title" {
 				link := e.ChildAttr("a[href]", "href")
-				fmt.Printf("Link found: %q -> %s\n", e.Text, link)
+				//fmt.Printf("Link found: %q -> %s\n", e.Text, link)
 				contentPage.Visit(e.Request.AbsoluteURL(link))
 			}
 		})
@@ -98,9 +104,9 @@ func (b *BeautyCrawler) RunImagePage() {
 		imagePage.OnHTML("img", func(e *colly.HTMLElement) {
 			link := e.Attr("src")
 			if strings.Contains(link, ".jpg") && strings.Contains(link, "https") {
-				fmt.Printf("my image: %q -> %s\n", e.Text, link)
-				ImageMap = append(ImageMap, link)
-				fmt.Println("now imagemap len : %v", len(ImageMap))
+				ImageLengh++
+				b.db.Insert(strconv.Itoa(ImageLengh), link)
+				fmt.Println("now imagemap len : %v", ImageLengh)
 			}
 		})
 
@@ -109,10 +115,10 @@ func (b *BeautyCrawler) RunImagePage() {
 	}
 }
 
-func (b *BeautyCrawler) addContentUrl(url string ){
+func (b *BeautyCrawler) addContentUrl(url string) {
 	b.ContentUrl <- url
 }
 
-func (b *BeautyCrawler) addImageUrl(url string){
+func (b *BeautyCrawler) addImageUrl(url string) {
 	b.ImageUrl <- url
 }

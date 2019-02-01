@@ -7,19 +7,23 @@ import (
 	"os"
 
 	"github.com/line/line-bot-sdk-go/linebot"
+	"github.com/riceChuang/jbtkLineBot/boltdb"
 	"github.com/riceChuang/jbtkLineBot/crawler"
-	"math/rand"
 	"github.com/riceChuang/jbtkLineBot/types"
+	"math/rand"
+	"strconv"
 )
 
 var bot *linebot.Client
 
 func main() {
 
+	boltdb.Initialize()
 	crawler.Initialize()
+
 	config := types.New("./app.yml")
 	var err error
-	beautyCrawler , err := crawler.GetCrawlerByType(crawler.Beauty)
+	beautyCrawler, err := crawler.GetCrawlerByType(crawler.Beauty)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -55,9 +59,11 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
 				if message.Text == "抽" {
-					imageIndex := rand.Intn(len(crawler.ImageMap))
-					fmt.Printf("my image link: %v", crawler.ImageMap[imageIndex])
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(crawler.ImageMap[imageIndex], crawler.ImageMap[imageIndex])).Do(); err != nil {
+					imageIndex := rand.Intn(crawler.ImageLengh)
+					db := boltdb.DB()
+					url := db.Read(strconv.Itoa(imageIndex))
+					fmt.Printf("my image link: %v", url)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
 				} else if message.Text == "機吧毛" {
