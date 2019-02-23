@@ -6,6 +6,7 @@ type Type int
 
 const (
 	Beauty Type = 1
+	DcardSex Type = 2
 )
 
 type Crawler interface {
@@ -47,6 +48,8 @@ func createCrawlerBySourceType(sourceType Type) (crawler Crawler, err error) {
 	switch sourceType {
 	case Beauty:
 		crawler = _b
+	case DcardSex:
+		crawler =  _dsex
 	default:
 	}
 

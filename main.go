@@ -5,13 +5,14 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
 	"github.com/riceChuang/jbtkLineBot/crawler"
 	"github.com/riceChuang/jbtkLineBot/types"
 	"math/rand"
-	"strconv"
+	"strings"
 )
 
 var bot *linebot.Client
@@ -28,6 +29,12 @@ func main() {
 		fmt.Println(err)
 	}
 	go beautyCrawler.RunImage(config.BeautyUrl)
+
+	dcardCrawler, err := crawler.GetCrawlerByType(crawler.DcardSex)
+	if err != nil {
+		fmt.Println(err)
+	}
+	go dcardCrawler.RunImage(config.DcardUrl)
 
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
@@ -61,13 +68,27 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 				if message.Text == "抽" {
 					imageIndex := rand.Intn(crawler.ImageLengh)
 					db := boltdb.DB()
-					url := db.Read(strconv.Itoa(imageIndex))
+					dbkey := fmt.Sprintf("beauty-%d", imageIndex)
+					url := db.Read(dbkey)
 					fmt.Printf("my image link: %v", url)
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
 				} else if message.Text == "機吧毛" {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://i.imgur.com/khCKl58.jpg", "https://i.imgur.com/khCKl58.jpg")).Do(); err != nil {
+						log.Print(err)
+					}
+				} else if strings.ToLower(message.Text) == "d" {
+					imageIndex := rand.Intn(crawler.DcardImageLengh)
+					db := boltdb.DB()
+					dbkey := fmt.Sprintf("dcard-%d", imageIndex)
+					url := db.Read(dbkey)
+					fmt.Printf("my image link: %v", url)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
+						log.Print(err)
+					}
+				} else if message.Text == "長度" {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh))).Do(); err != nil {
 						log.Print(err)
 					}
 				}

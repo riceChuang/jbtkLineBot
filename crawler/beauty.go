@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gocolly/colly"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
-	"strconv"
+
 	"strings"
 )
 
@@ -20,8 +20,8 @@ var (
 
 func NewBeautyCrawler(db *boltdb.Boltdb) *BeautyCrawler {
 	b := &BeautyCrawler{
-		ContentUrl: make(chan string, 10000),
-		ImageUrl:   make(chan string, 10000),
+		ContentUrl: make(chan string, 3000),
+		ImageUrl:   make(chan string, 3000),
 		db:         db,
 	}
 
@@ -51,13 +51,18 @@ func (b *BeautyCrawler) GetmainPage(url string) {
 	mainPage.OnHTML("a[href]", func(e *colly.HTMLElement) {
 		link := e.Attr("href")
 		// Print link
+
 		if strings.Contains(e.Text, "上頁") {
 			//fmt.Printf("Link found: %q -> %s\n", e.Text, link)
+
 			mainPage.Visit(e.Request.AbsoluteURL(link))
 		}
 	})
 
 	mainPage.OnResponse(func(r *colly.Response) {
+		if ImageLengh > 2500 {
+			return
+		}
 		b.addContentUrl("https://" + r.Request.URL.Host + r.Request.URL.Path)
 	})
 
@@ -68,6 +73,9 @@ func (b *BeautyCrawler) GetmainPage(url string) {
 func (b *BeautyCrawler) RunContenPage() {
 
 	for url := range b.ContentUrl {
+		if ImageLengh > 2500 {
+			return
+		}
 		// Instantiate default collector
 		contentPage := colly.NewCollector(
 			// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
@@ -96,6 +104,9 @@ func (b *BeautyCrawler) RunContenPage() {
 func (b *BeautyCrawler) RunImagePage() {
 
 	for url := range b.ImageUrl {
+		if ImageLengh > 2500 {
+			return
+		}
 		imagePage := colly.NewCollector(
 			// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
 			colly.AllowedDomains("www.ptt.cc"),
@@ -105,8 +116,9 @@ func (b *BeautyCrawler) RunImagePage() {
 			link := e.Attr("src")
 			if strings.Contains(link, ".jpg") && strings.Contains(link, "https") {
 				ImageLengh++
-				b.db.Insert(strconv.Itoa(ImageLengh), link)
-				fmt.Println("now imagemap len : %v", ImageLengh)
+				beautyKey := fmt.Sprintf("beauty-%d", ImageLengh)
+				b.db.Insert(beautyKey, link)
+				fmt.Println("now imagemap len : %d", ImageLengh)
 			}
 		})
 

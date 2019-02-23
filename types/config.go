@@ -12,6 +12,7 @@ import (
 
 type Configuration struct {
 	BeautyUrl string `yaml:"beautyurl"`
+	DcardUrl  string `yaml:"dcardurl"`
 }
 
 func New(fileName string) *Configuration {
@@ -41,4 +42,3 @@ func New(fileName string) *Configuration {
 
 	return &c
 }
-
