@@ -87,17 +87,19 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
-				} else if strings.ToLower(message.Text) == "ddd" {
-					for i := 0; i < 3; i++ {
-						imageIndex := rand.Intn(crawler.DcardImageLengh)
-						db := boltdb.DB()
-						dbkey := fmt.Sprintf("dcard-%d", imageIndex)
-						url := db.Read(dbkey)
-						fmt.Printf("my image link: %v", url)
-						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
-							log.Print(err)
-						}
-					}
+				//} else if strings.ToLower(message.Text) == "ddd" {
+				//	message := []*linebot.ImageMessage{}
+				//	for i := 0; i < 3; i++ {
+				//		imageIndex := rand.Intn(crawler.DcardImageLengh)
+				//		db := boltdb.DB()
+				//		dbkey := fmt.Sprintf("dcard-%d", imageIndex)
+				//		url := db.Read(dbkey)
+				//		fmt.Printf("my image link: %v", url)
+				//		message[i] = linebot.NewImageMessage(url, url)
+				//	}
+				//	if _, err = bot.ReplyMessage(event.ReplyToken, message).Do(); err != nil {
+				//		log.Print(err)
+				//	}
 				} else if message.Text == "長度" {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh))).Do(); err != nil {
 						log.Print(err)

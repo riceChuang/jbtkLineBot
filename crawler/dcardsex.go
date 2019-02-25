@@ -52,7 +52,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 			continue
 		}
 
-		if value.Gender == "F" {
+		if value.Gender == "F" && value.LikeCount >= 50 {
 			for _, urlValue := range value.Media {
 				DcardImageLengh++
 				beautyKey := fmt.Sprintf("dcard-%d", DcardImageLengh)
@@ -81,9 +81,10 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 }
 
 type dcard struct {
-	Id     int              "json:id"
-	Media  []*dcardImageUrl "json:media"
-	Gender string           "json:gender"
+	Id        int              "json:id"
+	Media     []*dcardImageUrl "json:media"
+	Gender    string           "json:gender"
+	LikeCount int              "json:likeCount"
 }
 
 type dcardImageUrl struct {
