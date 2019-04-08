@@ -24,17 +24,20 @@ func main() {
 
 	config := types.New("./app.yml")
 	var err error
-	beautyCrawler, err := crawler.GetCrawlerByType(crawler.Beauty)
-	if err != nil {
-		fmt.Println(err)
-	}
-	go beautyCrawler.RunImage(config.BeautyUrl)
 
-	dcardCrawler, err := crawler.GetCrawlerByType(crawler.DcardSex)
-	if err != nil {
-		fmt.Println(err)
+	crawlerTypesMap := map[crawler.Type]string{
+		crawler.Beauty:   config.BeautyUrl,
+		crawler.DcardSex: config.DcardUrl,
+		crawler.Joker:    config.JokerUrl,
 	}
-	go dcardCrawler.RunImage(config.DcardUrl)
+
+	for crawlerType := range crawlerTypesMap {
+		crawlerWorker, err := crawler.GetCrawlerByType(crawlerType)
+		if err != nil {
+			fmt.Println(err)
+		}
+		go crawlerWorker.RunImage(crawlerTypesMap[crawlerType])
+	}
 
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
@@ -87,25 +90,23 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
-				//} else if strings.ToLower(message.Text) == "ddd" {
-				//	message := []*linebot.ImageMessage{}
-				//	for i := 0; i < 3; i++ {
-				//		imageIndex := rand.Intn(crawler.DcardImageLengh)
-				//		db := boltdb.DB()
-				//		dbkey := fmt.Sprintf("dcard-%d", imageIndex)
-				//		url := db.Read(dbkey)
-				//		fmt.Printf("my image link: %v", url)
-				//		message[i] = linebot.NewImageMessage(url, url)
-				//	}
-				//	if _, err = bot.ReplyMessage(event.ReplyToken, message).Do(); err != nil {
-				//		log.Print(err)
-				//	}
+				}else if message.Text == "笑"{
+					imageIndex := rand.Intn(crawler.JokerLenght)
+					db := boltdb.DB()
+					dbkey := fmt.Sprintf("joker-%d", imageIndex)
+					content := db.Read(dbkey)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
+						log.Print(err)
+					}
 				} else if message.Text == "長度" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh))).Do(); err != nil {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
+						log.Print(err)
+					}
+				} else if message.Text == "廖雞排" {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://i.imgur.com/gUtKV2K.jpg", "https://i.imgur.com/gUtKV2K.jpg")).Do(); err != nil {
 						log.Print(err)
 					}
 				}
-
 			}
 		}
 	}

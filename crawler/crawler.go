@@ -5,8 +5,9 @@ import "sync"
 type Type int
 
 const (
-	Beauty Type = 1
+	Beauty   Type = 1
 	DcardSex Type = 2
+	Joker    Type = 3
 )
 
 type Crawler interface {
@@ -47,9 +48,11 @@ func createCrawlerBySourceType(sourceType Type) (crawler Crawler, err error) {
 
 	switch sourceType {
 	case Beauty:
-		crawler = _b
+		crawler = beautyCrawler
 	case DcardSex:
-		crawler =  _dsex
+		crawler = dcardSex
+	case Joker:
+		crawler = joker
 	default:
 	}
 

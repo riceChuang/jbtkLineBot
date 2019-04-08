@@ -118,7 +118,10 @@ func (b *BeautyCrawler) RunImagePage() {
 				ImageLengh++
 				beautyKey := fmt.Sprintf("beauty-%d", ImageLengh)
 				b.db.Insert(beautyKey, link)
-				fmt.Println("now imagemap len : %d", ImageLengh)
+				if ImageLengh%50 == 0 {
+					fmt.Println("now imagemap len : %d", ImageLengh)
+				}
+
 			}
 		})
 

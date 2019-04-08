@@ -56,7 +56,10 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 			for _, urlValue := range value.Media {
 				DcardImageLengh++
 				beautyKey := fmt.Sprintf("dcard-%d", DcardImageLengh)
-				fmt.Println("dcard len : %d", DcardImageLengh)
+				if DcardImageLengh%50 == 0 {
+					fmt.Println("dcard len : %d", DcardImageLengh)
+				}
+
 				d.db.Insert(beautyKey, urlValue.Url)
 			}
 		}

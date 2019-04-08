@@ -13,6 +13,7 @@ import (
 type Configuration struct {
 	BeautyUrl string `yaml:"beautyurl"`
 	DcardUrl  string `yaml:"dcardurl"`
+	JokerUrl  string `yaml:"jokerurl"`
 }
 
 func New(fileName string) *Configuration {
