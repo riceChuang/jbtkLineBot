@@ -17,6 +17,7 @@ type JokerCrawler struct {
 var (
 	JokerLenght   int
 	titlePosition = 0
+	JokerMap = map[string]string{}
 )
 
 func NewJokerCrawler(db *boltdb.Boltdb) *JokerCrawler {
@@ -61,7 +62,7 @@ func (j *JokerCrawler) GetmainPage(url string) {
 	})
 
 	mainPage.OnResponse(func(r *colly.Response) {
-		if JokerLenght > 1000 {
+		if JokerLenght > 500 {
 			return
 		}
 		j.addContentUrl("https://" + r.Request.URL.Host + r.Request.URL.Path)
@@ -74,7 +75,7 @@ func (j *JokerCrawler) GetmainPage(url string) {
 func (j *JokerCrawler) RunContenPage() {
 
 	for url := range j.ContentUrl {
-		if JokerLenght > 1000 {
+		if JokerLenght > 500 {
 			return
 		}
 		// Instantiate default collector
@@ -105,7 +106,7 @@ func (j *JokerCrawler) RunContenPage() {
 func (j *JokerCrawler) RunTextPage() {
 
 	for url := range j.ImageUrl {
-		if JokerLenght > 1000 {
+		if JokerLenght > 500 {
 			return
 		}
 		textPage := colly.NewCollector(
@@ -116,7 +117,9 @@ func (j *JokerCrawler) RunTextPage() {
 		textPage.OnHTML("#main-content", func(e *colly.HTMLElement) {
 
 			titleValue := e.ChildText("div[class='article-metaline']:nth-child(3)>span[class='article-meta-value']")
-
+			if !strings.Contains(titleValue, "笑話"){
+				return
+			}
 			timeValue := e.ChildText("div[class='article-metaline']:nth-child(4)>span[class='article-meta-value']")
 			//找文章的字首跟字尾
 			contentFirstPos := strings.Index(e.Text, timeValue)
@@ -135,7 +138,7 @@ func (j *JokerCrawler) RunTextPage() {
 
 			JokerLenght++
 			jokerKey := fmt.Sprintf("joker-%d", JokerLenght)
-			j.db.Insert(jokerKey, pageContent)
+			JokerMap[jokerKey] = pageContent
 			if JokerLenght%50 == 0 {
 				fmt.Println("now JokerLenght len : %d", JokerLenght)
 			}

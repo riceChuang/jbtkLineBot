@@ -60,7 +60,7 @@ func (b *BeautyCrawler) GetmainPage(url string) {
 	})
 
 	mainPage.OnResponse(func(r *colly.Response) {
-		if ImageLengh > 2500 {
+		if ImageLengh > 500 {
 			return
 		}
 		b.addContentUrl("https://" + r.Request.URL.Host + r.Request.URL.Path)
@@ -73,7 +73,7 @@ func (b *BeautyCrawler) GetmainPage(url string) {
 func (b *BeautyCrawler) RunContenPage() {
 
 	for url := range b.ContentUrl {
-		if ImageLengh > 2500 {
+		if ImageLengh > 500 {
 			return
 		}
 		// Instantiate default collector
@@ -104,7 +104,7 @@ func (b *BeautyCrawler) RunContenPage() {
 func (b *BeautyCrawler) RunImagePage() {
 
 	for url := range b.ImageUrl {
-		if ImageLengh > 2500 {
+		if ImageLengh > 500 {
 			return
 		}
 		imagePage := colly.NewCollector(

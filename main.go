@@ -77,10 +77,6 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
-				} else if message.Text == "機吧毛" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://i.imgur.com/khCKl58.jpg", "https://i.imgur.com/khCKl58.jpg")).Do(); err != nil {
-						log.Print(err)
-					}
 				} else if strings.ToLower(message.Text) == "d" {
 					imageIndex := rand.Intn(crawler.DcardImageLengh)
 					db := boltdb.DB()
@@ -92,18 +88,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}else if message.Text == "笑"{
 					imageIndex := rand.Intn(crawler.JokerLenght)
-					db := boltdb.DB()
 					dbkey := fmt.Sprintf("joker-%d", imageIndex)
-					content := db.Read(dbkey)
+					content := crawler.JokerMap[dbkey]
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
 						log.Print(err)
 					}
 				} else if message.Text == "長度" {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
-						log.Print(err)
-					}
-				} else if message.Text == "廖雞排" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage("https://i.imgur.com/gUtKV2K.jpg", "https://i.imgur.com/gUtKV2K.jpg")).Do(); err != nil {
 						log.Print(err)
 					}
 				}
