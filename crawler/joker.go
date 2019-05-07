@@ -62,7 +62,7 @@ func (j *JokerCrawler) GetmainPage(url string) {
 	})
 
 	mainPage.OnResponse(func(r *colly.Response) {
-		if JokerLenght > 150 {
+		if JokerLenght > 100 {
 			return
 		}
 		j.addContentUrl("https://" + r.Request.URL.Host + r.Request.URL.Path)
@@ -75,7 +75,7 @@ func (j *JokerCrawler) GetmainPage(url string) {
 func (j *JokerCrawler) RunContenPage() {
 
 	for url := range j.ContentUrl {
-		if JokerLenght > 150 {
+		if JokerLenght > 100 {
 			return
 		}
 		// Instantiate default collector
@@ -106,7 +106,7 @@ func (j *JokerCrawler) RunContenPage() {
 func (j *JokerCrawler) RunTextPage() {
 
 	for url := range j.ImageUrl {
-		if JokerLenght > 150 {
+		if JokerLenght > 100 {
 			return
 		}
 		textPage := colly.NewCollector(

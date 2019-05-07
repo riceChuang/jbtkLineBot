@@ -2,16 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	"os"
-	"strconv"
-
 	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
 	"github.com/riceChuang/jbtkLineBot/crawler"
 	"github.com/riceChuang/jbtkLineBot/types"
+	"log"
 	"math/rand"
+	"net/http"
+	"os"
+	"strconv"
 	"strings"
 )
 
@@ -26,9 +25,9 @@ func main() {
 	var err error
 
 	crawlerTypesMap := map[crawler.Type]string{
-		crawler.Beauty:   config.BeautyUrl,
+		//crawler.Beauty:   config.BeautyUrl,
 		crawler.DcardSex: config.DcardUrl,
-		crawler.Joker:    config.JokerUrl,
+		//crawler.Joker:    config.JokerUrl,
 	}
 
 	for crawlerType := range crawlerTypesMap {
@@ -69,14 +68,14 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
 				if message.Text == "抽" {
-					imageIndex := rand.Intn(crawler.ImageLengh)
-					db := boltdb.DB()
-					dbkey := fmt.Sprintf("beauty-%d", imageIndex)
-					url := db.Read(dbkey)
-					fmt.Printf("my image link: %v", url)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
-						log.Print(err)
-					}
+					//imageIndex := rand.Intn(crawler.ImageLengh)
+					//db := boltdb.DB()
+					//dbkey := fmt.Sprintf("beauty-%d", imageIndex)
+					//url := db.Read(dbkey)
+					//fmt.Printf("my image link: %v", url)
+					//if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
+					//	log.Print(err)
+					//}
 				} else if strings.ToLower(message.Text) == "d" {
 					imageIndex := rand.Intn(crawler.DcardImageLengh)
 					db := boltdb.DB()
@@ -86,13 +85,13 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
-				}else if message.Text == "笑"{
-					imageIndex := rand.Intn(crawler.JokerLenght)
-					dbkey := fmt.Sprintf("joker-%d", imageIndex)
-					content := crawler.JokerMap[dbkey]
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
-						log.Print(err)
-					}
+				//}else if message.Text == "笑"{
+				//	imageIndex := rand.Intn(crawler.JokerLenght)
+				//	dbkey := fmt.Sprintf("joker-%d", imageIndex)
+				//	content := crawler.JokerMap[dbkey]
+				//	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
+				//		log.Print(err)
+				//	}
 				} else if message.Text == "長度" {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
 						log.Print(err)

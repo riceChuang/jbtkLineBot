@@ -44,7 +44,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 
 	for i, value := range result {
 
-		if DcardImageLengh > 1000 {
+		if DcardImageLengh > 600 {
 			return
 		}
 
