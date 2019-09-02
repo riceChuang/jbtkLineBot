@@ -1,39 +1,56 @@
 package crawler
 
 import (
+	"fmt"
 	"github.com/gocolly/colly"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
-
-	"fmt"
 	"strings"
 )
 
 type JokerCrawler struct {
 	ContentUrl chan string
 	ImageUrl   chan string
+	Stop       chan bool
 	db         *boltdb.Boltdb
 }
 
 var (
-	JokerLenght   int
-	titlePosition = 0
-	JokerMap = map[string]string{}
+	JokerLenght = 0
+	maxJokerLen = 100
+	JokerMap    = map[string]string{}
 )
 
 func NewJokerCrawler(db *boltdb.Boltdb) *JokerCrawler {
 	j := &JokerCrawler{
 		ContentUrl: make(chan string, 1000),
 		ImageUrl:   make(chan string, 1000),
+		Stop:       make(chan bool, 2),
 		db:         db,
 	}
 
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 1; i++ {
 		go j.RunContenPage()
 	}
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 2; i++ {
 		go j.RunTextPage()
 	}
+
+	go func() {
+		for {
+			select {
+			case <-j.Stop:
+				for len(j.ContentUrl) > 0 {
+					//log.Printf("content len: %v", len(j.ContentUrl))
+					<-j.ContentUrl
+				}
+				for len(j.ImageUrl) > 0 {
+					//log.Printf("image len: %v", len(j.ImageUrl))
+					<-j.ImageUrl
+				}
+			}
+		}
+	}()
 
 	return j
 }
@@ -54,17 +71,13 @@ func (j *JokerCrawler) GetmainPage(url string) {
 		link := e.Attr("href")
 		// Print link
 
-		if strings.Contains(e.Text, "上頁") {
+		if strings.Contains(e.Text, "上頁") && JokerLenght < maxJokerLen{
 			//fmt.Printf("Link found: %q -> %s\n", e.Text, link)
-
 			mainPage.Visit(e.Request.AbsoluteURL(link))
 		}
 	})
 
 	mainPage.OnResponse(func(r *colly.Response) {
-		if JokerLenght > 100 {
-			return
-		}
 		j.addContentUrl("https://" + r.Request.URL.Host + r.Request.URL.Path)
 	})
 
@@ -75,8 +88,9 @@ func (j *JokerCrawler) GetmainPage(url string) {
 func (j *JokerCrawler) RunContenPage() {
 
 	for url := range j.ContentUrl {
-		if JokerLenght > 100 {
-			return
+		if JokerLenght > maxJokerLen {
+			j.Stop <- true
+			break
 		}
 		// Instantiate default collector
 		contentPage := colly.NewCollector(
@@ -94,7 +108,6 @@ func (j *JokerCrawler) RunContenPage() {
 		})
 
 		contentPage.OnResponse(func(r *colly.Response) {
-			//b.GetImagePage("https://" + r.Request.URL.Host + r.Request.URL.Path)
 			j.addImageUrl("https://" + r.Request.URL.Host + r.Request.URL.Path)
 		})
 
@@ -106,8 +119,9 @@ func (j *JokerCrawler) RunContenPage() {
 func (j *JokerCrawler) RunTextPage() {
 
 	for url := range j.ImageUrl {
-		if JokerLenght > 100 {
-			return
+		if JokerLenght > maxJokerLen {
+			j.Stop <- true
+			break
 		}
 		textPage := colly.NewCollector(
 			// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
@@ -117,7 +131,7 @@ func (j *JokerCrawler) RunTextPage() {
 		textPage.OnHTML("#main-content", func(e *colly.HTMLElement) {
 
 			titleValue := e.ChildText("div[class='article-metaline']:nth-child(3)>span[class='article-meta-value']")
-			if !strings.Contains(titleValue, "笑話"){
+			if !strings.Contains(titleValue, "笑話") {
 				return
 			}
 			timeValue := e.ChildText("div[class='article-metaline']:nth-child(4)>span[class='article-meta-value']")

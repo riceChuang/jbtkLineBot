@@ -1,13 +1,8 @@
 package types
 
 import (
-	"flag"
-	"io/ioutil"
-	"log"
-	"os"
-	"path/filepath"
-
-	_yaml "gopkg.in/yaml.v2"
+	"fmt"
+	"github.com/spf13/viper"
 )
 
 type Configuration struct {
@@ -16,30 +11,25 @@ type Configuration struct {
 	JokerUrl  string `yaml:"jokerurl"`
 }
 
-func New(fileName string) *Configuration {
-	flag.Parse()
+var configData *Configuration
 
-	c := Configuration{}
-
-	//read and parse config file
-	rootDirPath, err := filepath.Abs(filepath.Dir(os.Args[0]))
+func InitialConfigPkg() {
+	var config Configuration
+	viper.SetConfigName("app")
+	viper.AddConfigPath(".")
+	err := viper.ReadInConfig()
 	if err != nil {
-		log.Fatalf("config: file error: %s", err.Error())
+		panic(fmt.Errorf("fail get config file: %s", err))
 	}
-
-	configPath := filepath.Join(rootDirPath, fileName)
-	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-		// config exists
-		file, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			log.Fatalf("config: file error: %s", err.Error())
-		}
-
-		err = _yaml.Unmarshal(file, &c)
-		if err != nil {
-			log.Fatal("config: config error:", err)
-		}
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		panic(fmt.Errorf("error unmarshal : %s", err))
 	}
+	fmt.Println(config)
 
-	return &c
+	configData = &config
+}
+
+func GetConfig() *Configuration {
+	return configData
 }

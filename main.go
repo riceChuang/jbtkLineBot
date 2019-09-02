@@ -20,14 +20,14 @@ func main() {
 
 	boltdb.Initialize()
 	crawler.Initialize()
-
-	config := types.New("./app.yml")
+	types.InitialConfigPkg()
+	config := types.GetConfig()
 	var err error
 
 	crawlerTypesMap := map[crawler.Type]string{
-		//crawler.Beauty:   config.BeautyUrl,
+		crawler.Beauty: config.BeautyUrl,
 		crawler.DcardSex: config.DcardUrl,
-		//crawler.Joker:    config.JokerUrl,
+		crawler.Joker:    config.JokerUrl,
 	}
 
 	for crawlerType := range crawlerTypesMap {
@@ -37,6 +37,14 @@ func main() {
 		}
 		go crawlerWorker.RunImage(crawlerTypesMap[crawlerType])
 	}
+
+	//go func() {
+	//	for {
+	//		PrintMemUsage()
+	//		time.Sleep(3 * time.Second)
+	//	}
+	//}()
+
 
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
@@ -68,14 +76,14 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
 				if message.Text == "抽" {
-					//imageIndex := rand.Intn(crawler.ImageLengh)
-					//db := boltdb.DB()
-					//dbkey := fmt.Sprintf("beauty-%d", imageIndex)
-					//url := db.Read(dbkey)
-					//fmt.Printf("my image link: %v", url)
-					//if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
-					//	log.Print(err)
-					//}
+					imageIndex := rand.Intn(crawler.ImageLength)
+					db := boltdb.DB()
+					dbkey := fmt.Sprintf("beauty-%d", imageIndex)
+					url := db.Read(dbkey)
+					fmt.Printf("my image link: %v", url)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
+						log.Print(err)
+					}
 				} else if strings.ToLower(message.Text) == "d" {
 					imageIndex := rand.Intn(crawler.DcardImageLengh)
 					db := boltdb.DB()
@@ -85,15 +93,15 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
 						log.Print(err)
 					}
-				//}else if message.Text == "笑"{
-				//	imageIndex := rand.Intn(crawler.JokerLenght)
-				//	dbkey := fmt.Sprintf("joker-%d", imageIndex)
-				//	content := crawler.JokerMap[dbkey]
-				//	if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
-				//		log.Print(err)
-				//	}
+					}else if message.Text == "笑"{
+						imageIndex := rand.Intn(crawler.JokerLenght)
+						dbkey := fmt.Sprintf("joker-%d", imageIndex)
+						content := crawler.JokerMap[dbkey]
+						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
+							log.Print(err)
+						}
 				} else if message.Text == "長度" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLengh)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLength)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
 						log.Print(err)
 					}
 				}
@@ -101,3 +109,16 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+//
+//func PrintMemUsage() {
+//	var m runtime.MemStats
+//	runtime.ReadMemStats(&m)
+//	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+//	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+//	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+//	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+//	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+//}
+//func bToMb(b uint64) uint64 {
+//	return b / 1024 / 1024
+//}
