@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
@@ -25,7 +26,7 @@ func main() {
 	var err error
 
 	crawlerTypesMap := map[crawler.Type]string{
-		crawler.Beauty: config.BeautyUrl,
+		crawler.Beauty:   config.BeautyUrl,
 		crawler.DcardSex: config.DcardUrl,
 		crawler.Joker:    config.JokerUrl,
 	}
@@ -44,7 +45,6 @@ func main() {
 	//		time.Sleep(3 * time.Second)
 	//	}
 	//}()
-
 
 	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
 	log.Println("Bot:", bot, " err:", err)
@@ -88,20 +88,46 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 					imageIndex := rand.Intn(crawler.DcardImageLengh)
 					db := boltdb.DB()
 					dbkey := fmt.Sprintf("dcard-%d", imageIndex)
-					url := db.Read(dbkey)
-					fmt.Printf("my image link: %v", url)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
+					dcardResp := db.Read(dbkey)
+					dcardInfo := crawler.DcardInfo{}
+					err := json.Unmarshal([]byte(dcardResp), &dcardInfo)
+					if err != nil {
+						fmt.Println(err)
+						return
+					}
+					fmt.Printf("my image link: %v", dcardInfo.Image)
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(dcardInfo.Image, dcardInfo.Image)).Do(); err != nil {
 						log.Print(err)
 					}
-					}else if message.Text == "笑"{
-						imageIndex := rand.Intn(crawler.JokerLenght)
-						dbkey := fmt.Sprintf("joker-%d", imageIndex)
-						content := crawler.JokerMap[dbkey]
-						if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
-							log.Print(err)
-						}
+				} else if message.Text == "笑" {
+					imageIndex := rand.Intn(crawler.JokerLenght)
+					dbkey := fmt.Sprintf("joker-%d", imageIndex)
+					content := crawler.JokerMap[dbkey]
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
+						log.Print(err)
+					}
 				} else if message.Text == "長度" {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLength)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
+						log.Print(err)
+					}
+				} else if message.Text == "test" {
+					imageColumns := []*linebot.ImageCarouselColumn{}
+
+					for i := 0; i < 10; i++ {
+						imageIndex := rand.Intn(crawler.DcardImageLengh)
+						db := boltdb.DB()
+						dbkey := fmt.Sprintf("dcard-%d", imageIndex)
+						dcardResp := db.Read(dbkey)
+						dcardInfo := crawler.DcardInfo{}
+						err := json.Unmarshal([]byte(dcardResp), &dcardInfo)
+						if err != nil {
+							fmt.Println(err)
+							return
+						}
+						fmt.Println(dcardInfo)
+						imageColumns = append(imageColumns, linebot.NewImageCarouselColumn(dcardInfo.Image, linebot.NewURIAction(dcardInfo.Title, dcardInfo.Link)))
+					}
+					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTemplateMessage("Dacrd", linebot.NewImageCarouselTemplate(imageColumns...))).Do(); err != nil {
 						log.Print(err)
 					}
 				}
@@ -109,6 +135,7 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
 //
 //func PrintMemUsage() {
 //	var m runtime.MemStats
