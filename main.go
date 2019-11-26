@@ -1,21 +1,14 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
 	"github.com/riceChuang/jbtkLineBot/crawler"
+	"github.com/riceChuang/jbtkLineBot/service"
 	"github.com/riceChuang/jbtkLineBot/types"
-	"log"
-	"math/rand"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
 )
-
-var bot *linebot.Client
 
 func main() {
 
@@ -23,7 +16,6 @@ func main() {
 	crawler.Initialize()
 	types.InitialConfigPkg()
 	config := types.GetConfig()
-	var err error
 
 	crawlerTypesMap := map[crawler.Type]string{
 		crawler.Beauty:   config.BeautyUrl,
@@ -39,16 +31,8 @@ func main() {
 		go crawlerWorker.RunImage(crawlerTypesMap[crawlerType])
 	}
 
-	//go func() {
-	//	for {
-	//		PrintMemUsage()
-	//		time.Sleep(3 * time.Second)
-	//	}
-	//}()
-
-	bot, err = linebot.New(os.Getenv("ChannelSecret"), os.Getenv("ChannelAccessToken"))
-	log.Println("Bot:", bot, " err:", err)
-	http.HandleFunc("/back", callbackHandler)
+	service.InitBotClient()
+	http.HandleFunc("/back", service.CallbackHandler)
 	port := os.Getenv("PORT")
 	addr := ""
 	if port != "" {
@@ -58,82 +42,6 @@ func main() {
 	}
 
 	http.ListenAndServe(addr, nil)
-}
-
-func callbackHandler(w http.ResponseWriter, r *http.Request) {
-	events, err := bot.ParseRequest(r)
-	if err != nil {
-		if err == linebot.ErrInvalidSignature {
-			w.WriteHeader(400)
-		} else {
-			w.WriteHeader(500)
-		}
-		return
-	}
-
-	for _, event := range events {
-		if event.Type == linebot.EventTypeMessage {
-			switch message := event.Message.(type) {
-			case *linebot.TextMessage:
-				if message.Text == "抽" {
-					imageIndex := rand.Intn(crawler.ImageLength)
-					db := boltdb.DB()
-					dbkey := fmt.Sprintf("beauty-%d", imageIndex)
-					url := db.Read(dbkey)
-					fmt.Printf("my image link: %v", url)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(url, url)).Do(); err != nil {
-						log.Print(err)
-					}
-				} else if strings.ToLower(message.Text) == "d" {
-					imageIndex := rand.Intn(crawler.DcardImageLengh)
-					db := boltdb.DB()
-					dbkey := fmt.Sprintf("dcard-%d", imageIndex)
-					dcardResp := db.Read(dbkey)
-					dcardInfo := crawler.DcardInfo{}
-					err := json.Unmarshal([]byte(dcardResp), &dcardInfo)
-					if err != nil {
-						fmt.Println(err)
-						return
-					}
-					fmt.Printf("my image link: %v", dcardInfo.Image)
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewImageMessage(dcardInfo.Image, dcardInfo.Image)).Do(); err != nil {
-						log.Print(err)
-					}
-				} else if message.Text == "笑" {
-					imageIndex := rand.Intn(crawler.JokerLenght)
-					dbkey := fmt.Sprintf("joker-%d", imageIndex)
-					content := crawler.JokerMap[dbkey]
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(content)).Do(); err != nil {
-						log.Print(err)
-					}
-				} else if message.Text == "長度" {
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLength)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
-						log.Print(err)
-					}
-				} else if message.Text == "test" {
-					imageColumns := []*linebot.ImageCarouselColumn{}
-
-					for i := 0; i < 10; i++ {
-						imageIndex := rand.Intn(crawler.DcardImageLengh)
-						db := boltdb.DB()
-						dbkey := fmt.Sprintf("dcard-%d", imageIndex)
-						dcardResp := db.Read(dbkey)
-						dcardInfo := crawler.DcardInfo{}
-						err := json.Unmarshal([]byte(dcardResp), &dcardInfo)
-						if err != nil {
-							fmt.Println(err)
-							return
-						}
-						fmt.Println(dcardInfo)
-						imageColumns = append(imageColumns, linebot.NewImageCarouselColumn(dcardInfo.Image, linebot.NewURIAction(dcardInfo.Title, dcardInfo.Link)))
-					}
-					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTemplateMessage("Dacrd", linebot.NewImageCarouselTemplate(imageColumns...))).Do(); err != nil {
-						log.Print(err)
-					}
-				}
-			}
-		}
-	}
 }
 
 //
