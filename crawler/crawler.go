@@ -55,6 +55,7 @@ func createCrawlerBySourceType(sourceType Type) (crawler Crawler, err error) {
 	case Joker:
 		crawler = joker
 	case PornHub:
+		crawler = pornHub
 	default:
 	}
 
