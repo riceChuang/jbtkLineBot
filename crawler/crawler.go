@@ -8,6 +8,7 @@ const (
 	Beauty   Type = 1
 	DcardSex Type = 2
 	Joker    Type = 3
+	PornHub  Type = 4
 )
 
 type Crawler interface {
@@ -53,6 +54,8 @@ func createCrawlerBySourceType(sourceType Type) (crawler Crawler, err error) {
 		crawler = dcardSex
 	case Joker:
 		crawler = joker
+	case PornHub:
+		crawler = pornHub
 	default:
 	}
 

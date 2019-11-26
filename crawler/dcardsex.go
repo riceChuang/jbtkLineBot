@@ -8,10 +8,30 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	httpUrl "net/url"
 )
 
 type DcardCrawler struct {
 	db *boltdb.Boltdb
+}
+
+type Dcard struct {
+	ID        int              `json:"id"`
+	Media     []*dcardImageUrl `json:"media"`
+	Gender    string           `json:"gender"`
+	LikeCount int              `json:"likeCount"`
+	Title     string           `json:"title"`
+}
+
+type DcardInfo struct {
+	ID    int    `json:"id"`
+	Image string `json:"image"`
+	Link  string `json:"link"`
+	Title string `json:"title"`
+}
+
+type dcardImageUrl struct {
+	Url string `json:"url"`
 }
 
 var (
@@ -35,7 +55,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	result := []*dcard{}
+	result := []*Dcard{}
 	err = json.Unmarshal(body, &result)
 	fmt.Print(string(body))
 	if err != nil {
@@ -60,7 +80,19 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 					fmt.Println("dcard len : %d", DcardImageLengh)
 				}
 
-				d.db.Insert(beautyKey, urlValue.Url)
+				if !strings.Contains(urlValue.Url, "https") {
+					urlValue.Url = strings.Replace(urlValue.Url, "http", "https", -1)
+				}
+
+				dcardInfo, err := json.Marshal(DcardInfo{
+					ID:    value.ID,
+					Image: urlValue.Url,
+					Link:  fmt.Sprintf("https://www.dcard.tw/f/sex/p/%v-%v", value.ID, httpUrl.QueryEscape(value.Title)),
+				})
+				if err != nil {
+					fmt.Println(err)
+				}
+				d.db.Insert(beautyKey, string(dcardInfo))
 			}
 		}
 
@@ -71,25 +103,14 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 			} else if strings.Contains(url, "false") && strings.Contains(url, "before") {
 				beforeLocation := strings.Index(url, "before")
 				newUrl := url[0 : beforeLocation+7]
-				newUrl = fmt.Sprintf("%v%v", newUrl, strconv.Itoa(value.Id))
+				newUrl = fmt.Sprintf("%v%v", newUrl, strconv.Itoa(value.ID))
 				d.GetDcarUrl(newUrl)
 			} else if strings.Contains(url, "false") {
-				newUrl := fmt.Sprintf("%v%v%v", url, "&before=", strconv.Itoa(value.Id))
+				newUrl := fmt.Sprintf("%v%v%v", url, "&before=", strconv.Itoa(value.ID))
 				d.GetDcarUrl(newUrl)
 			}
 		}
 
 	}
 
-}
-
-type dcard struct {
-	Id        int              "json:id"
-	Media     []*dcardImageUrl "json:media"
-	Gender    string           "json:gender"
-	LikeCount int              "json:likeCount"
-}
-
-type dcardImageUrl struct {
-	Url string "json:url"
 }
