@@ -13,6 +13,6 @@ func Initialize(){
 	beautyCrawler = NewBeautyCrawler(boltdb.DB())
 	dcardSex = NewDcrdCrawler(boltdb.DB())
 	joker = NewJokerCrawler(boltdb.DB())
-	pornHub = NewPornHubCrawler(boltdb.DB())
+	//pornHub = NewPornHubCrawler(boltdb.DB())
 }
 

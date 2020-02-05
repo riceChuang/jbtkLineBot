@@ -17,6 +17,7 @@ const (
 	MessageDcards = "dd"
 	MessageLong   = "長度"
 	MessagePorn   = "片"
+	MessageTest   = "測"
 )
 
 func ReplyDcardMapMessage(event *linebot.Event) {
@@ -78,6 +79,13 @@ func ReplyJokeMessage(event *linebot.Event) {
 	}
 }
 
-func ReplyPornMessage(event *linebot.Event){
+func ReplyPornMessage(event *linebot.Event) {
 
+}
+
+func ReplyTransferImage(event *linebot.Event) {
+	imageURL := "https://i.imgur.com/Cj28dWe.jpg"
+	if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("yoyoyo").WithQuickReplies(linebot.NewQuickReplyItems(linebot.NewQuickReplyButton(imageURL, linebot.NewCameraRollAction("上傳嗎"))))).Do(); err != nil {
+		log.Print(err)
+	}
 }

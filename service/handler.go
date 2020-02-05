@@ -1,6 +1,8 @@
 package service
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/riceChuang/jbtkLineBot/crawler"
 	"log"
@@ -31,6 +33,13 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, event := range events {
+		out, err := json.Marshal(event)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if _, err := bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage(string(out))).Do(); err != nil {
+			log.Print(err)
+		}
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
 			case *linebot.TextMessage:
@@ -49,6 +58,8 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 					if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("beauty len :"+strconv.Itoa(crawler.ImageLength)+"decard len :"+strconv.Itoa(crawler.DcardImageLengh)+"joker len :"+strconv.Itoa(crawler.JokerLenght))).Do(); err != nil {
 						log.Print(err)
 					}
+				case MessageTest:
+					ReplyTransferImage(event)
 				default:
 				}
 			}
