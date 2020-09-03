@@ -20,7 +20,6 @@ func main() {
 	crawlerTypesMap := map[crawler.Type]string{
 		crawler.Beauty:   config.BeautyUrl,
 		crawler.DcardSex: config.DcardUrl,
-		crawler.Joker:    config.JokerUrl,
 	}
 
 	for crawlerType := range crawlerTypesMap {
