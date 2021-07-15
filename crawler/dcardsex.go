@@ -58,10 +58,11 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 	}
 	result := []*model.Dcard{}
 	err = json.Unmarshal(body, &result)
-	fmt.Print(string(body))
 	if err != nil {
 		logrus.Errorf("Dcard parse Error:%v", err)
 	}
+	logrus.Info(string(body))
+
 
 	for i, value := range result {
 

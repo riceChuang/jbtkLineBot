@@ -3,7 +3,7 @@ package model
 
 type Dcard struct {
 	ID        int              `json:"id"`
-	Media     []*DcardImageUrl `json:"media"`
+	Media     []*DcardImageUrl `json:"mediaMeta"`
 	Gender    string           `json:"gender"`
 	LikeCount int              `json:"likeCount"`
 	Title     string           `json:"title"`
