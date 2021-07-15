@@ -1,3 +1,6 @@
 beautyurl: https://www.ptt.cc/bbs/Beauty/index.html
+maxbeautylen: 200
 dcardurl: https://www.dcard.tw/_api/forums/sex/posts?popular=true&limit=100
+maxdcardlen: 600
 jokerurl: https://www.ptt.cc/bbs/joke/index.html
+maxjokerlen: 100

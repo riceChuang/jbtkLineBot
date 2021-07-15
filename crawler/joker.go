@@ -4,30 +4,45 @@ import (
 	"fmt"
 	"github.com/gocolly/colly"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"github.com/riceChuang/jbtkLineBot/config"
 	"strings"
+	"sync"
 )
 
 type JokerCrawler struct {
-	ContentUrl chan string
-	ImageUrl   chan string
-	Stop       chan bool
-	db         *boltdb.Boltdb
+	ContentUrl  chan string
+	ImageUrl    chan string
+	maxLen      int32
+	imageLength int32
+	Stop        chan bool
+	db          *boltdb.Boltdb
 }
 
 var (
-	JokerLenght = 0
-	maxJokerLen = 100
-	JokerMap    = map[string]string{}
+	jokerCraw        *JokerCrawler
+	jokerCrawlerOnce = &sync.Once{}
+	JokerMap         = map[string]string{}
 )
 
 func NewJokerCrawler(db *boltdb.Boltdb) *JokerCrawler {
-	j := &JokerCrawler{
-		ContentUrl: make(chan string, 1000),
-		ImageUrl:   make(chan string, 1000),
-		Stop:       make(chan bool, 2),
-		db:         db,
+	cfg := config.GetConfig()
+	if jokerCraw != nil {
+		return jokerCraw
 	}
+	jokerCrawlerOnce.Do(func() {
+		jokerCraw = &JokerCrawler{
+			ContentUrl: make(chan string, 1000),
+			ImageUrl:   make(chan string, 1000),
+			Stop:       make(chan bool, 2),
+			maxLen:     cfg.MaxJokerLen,
+			db:         db,
+		}
+		jokerCraw.Initialize()
+	})
+	return jokerCraw
+}
 
+func (j *JokerCrawler) Initialize() {
 	for i := 0; i < 1; i++ {
 		go j.RunContenPage()
 	}
@@ -51,12 +66,14 @@ func NewJokerCrawler(db *boltdb.Boltdb) *JokerCrawler {
 			}
 		}
 	}()
-
-	return j
 }
 
-func (j *JokerCrawler) RunImage(url string) {
-	j.GetmainPage(url)
+func (j *JokerCrawler) RunCrawlerImage(url string) {
+	go  j.GetmainPage(url)
+}
+
+func (j *JokerCrawler) GetImageLength() int32 {
+	return j.imageLength
 }
 
 func (j *JokerCrawler) GetmainPage(url string) {
@@ -71,7 +88,7 @@ func (j *JokerCrawler) GetmainPage(url string) {
 		link := e.Attr("href")
 		// Print link
 
-		if strings.Contains(e.Text, "上頁") && JokerLenght < maxJokerLen{
+		if strings.Contains(e.Text, "上頁") && j.imageLength < j.maxLen {
 			//fmt.Printf("Link found: %q -> %s\n", e.Text, link)
 			mainPage.Visit(e.Request.AbsoluteURL(link))
 		}
@@ -88,7 +105,7 @@ func (j *JokerCrawler) GetmainPage(url string) {
 func (j *JokerCrawler) RunContenPage() {
 
 	for url := range j.ContentUrl {
-		if JokerLenght > maxJokerLen {
+		if j.imageLength > j.maxLen {
 			j.Stop <- true
 			break
 		}
@@ -119,7 +136,7 @@ func (j *JokerCrawler) RunContenPage() {
 func (j *JokerCrawler) RunTextPage() {
 
 	for url := range j.ImageUrl {
-		if JokerLenght > maxJokerLen {
+		if j.imageLength > j.maxLen {
 			j.Stop <- true
 			break
 		}
@@ -150,11 +167,11 @@ func (j *JokerCrawler) RunTextPage() {
 			pageContent := fmt.Sprintf("%v\n%v", titleValue, content)
 			//fmt.Println(pageContent)
 
-			JokerLenght++
-			jokerKey := fmt.Sprintf("joker-%d", JokerLenght)
+			j.imageLength++
+			jokerKey := fmt.Sprintf("joker-%d", j.imageLength)
 			JokerMap[jokerKey] = pageContent
-			if JokerLenght%50 == 0 {
-				fmt.Println("now JokerLenght len : %d", JokerLenght)
+			if j.imageLength%50 == 0 {
+				fmt.Println("now JokerLenght len : %d", j.imageLength)
 			}
 		})
 

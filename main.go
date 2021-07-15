@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"github.com/riceChuang/jbtkLineBot/config"
 	"github.com/riceChuang/jbtkLineBot/crawler"
-	"github.com/riceChuang/jbtkLineBot/service"
-	"github.com/riceChuang/jbtkLineBot/types"
+	"github.com/riceChuang/jbtkLineBot/line"
+	"github.com/riceChuang/jbtkLineBot/route"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 )
@@ -13,25 +15,24 @@ import (
 func main() {
 
 	boltdb.Initialize()
-	crawler.Initialize()
-	types.InitialConfigPkg()
-	config := types.GetConfig()
+	config.InitialConfigPkg()
 
-	crawlerTypesMap := map[crawler.Type]string{
-		crawler.Beauty:   config.BeautyUrl,
+	config := config.GetConfig()
+	crawlerTypesMap := map[crawler.CrawlerType]string{
 		crawler.DcardSex: config.DcardUrl,
+		crawler.Beauty:   config.BeautyUrl,
 	}
 
-	for crawlerType := range crawlerTypesMap {
+	for crawlerType, url := range crawlerTypesMap {
 		crawlerWorker, err := crawler.GetCrawlerByType(crawlerType)
 		if err != nil {
-			fmt.Println(err)
+			logrus.Error("getCrawler Err:%v", err)
 		}
-		go crawlerWorker.RunImage(crawlerTypesMap[crawlerType])
+		crawlerWorker.RunCrawlerImage(url)
 	}
 
-	service.InitBotClient()
-	http.HandleFunc("/back", service.CallbackHandler)
+	line.InitBotClient()
+	http.HandleFunc("/back", route.CallbackHandler)
 	port := os.Getenv("PORT")
 	addr := ""
 	if port != "" {

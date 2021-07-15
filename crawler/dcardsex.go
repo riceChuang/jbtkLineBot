@@ -4,49 +4,50 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"github.com/riceChuang/jbtkLineBot/config"
+	"github.com/riceChuang/jbtkLineBot/model"
 	"io/ioutil"
 	"net/http"
+	httpUrl "net/url"
 	"strconv"
 	"strings"
-	httpUrl "net/url"
+	"sync"
+)
+
+
+
+var (
+	dcardCraw *DcardCrawler
+	dcardCrawlerOnce = &sync.Once{}
 )
 
 type DcardCrawler struct {
 	db *boltdb.Boltdb
+	imageLength int32
+	maxImageLength int32
 }
 
-type Dcard struct {
-	ID        int              `json:"id"`
-	Media     []*dcardImageUrl `json:"media"`
-	Gender    string           `json:"gender"`
-	LikeCount int              `json:"likeCount"`
-	Title     string           `json:"title"`
-}
 
-type DcardInfo struct {
-	ID    int    `json:"id"`
-	Image string `json:"image"`
-	Link  string `json:"link"`
-	Title string `json:"title"`
-}
-
-type dcardImageUrl struct {
-	Url string `json:"url"`
-}
-
-var (
-	DcardImageLengh int
-)
-
-func NewDcrdCrawler(db *boltdb.Boltdb) *DcardCrawler {
-	b := &DcardCrawler{
-		db: db,
+func NewDcardCrawler(db *boltdb.Boltdb) *DcardCrawler {
+	if dcardCraw != nil {
+		return dcardCraw
 	}
-	return b
+	dcardCrawlerOnce.Do(func() {
+		cfg := config.GetConfig()
+		dcardCraw = &DcardCrawler{
+			db: db,
+			maxImageLength: cfg.MaxDcardLen,
+		}
+	})
+	return dcardCraw
 }
 
-func (d *DcardCrawler) RunImage(url string) {
-	d.GetDcarUrl(url)
+func (d *DcardCrawler) RunCrawlerImage(url string) {
+	go  d.GetDcarUrl(url)
+}
+
+func (d *DcardCrawler) GetImageLength() int32 {
+	return d.imageLength
 }
 
 func (d *DcardCrawler) GetDcarUrl(url string) {
@@ -55,7 +56,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 
-	result := []*Dcard{}
+	result := []*model.Dcard{}
 	err = json.Unmarshal(body, &result)
 	fmt.Print(string(body))
 	if err != nil {
@@ -64,7 +65,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 
 	for i, value := range result {
 
-		if DcardImageLengh > 600 {
+		if d.imageLength > d.maxImageLength {
 			return
 		}
 
@@ -74,17 +75,17 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 
 		if value.Gender == "F" && value.LikeCount >= 50 {
 			for _, urlValue := range value.Media {
-				DcardImageLengh++
-				beautyKey := fmt.Sprintf("dcard-%d", DcardImageLengh)
-				if DcardImageLengh%50 == 0 {
-					fmt.Println("dcard len : %d", DcardImageLengh)
+				d.imageLength++
+				beautyKey := fmt.Sprintf("dcard-%d", d.imageLength)
+				if d.imageLength%50 == 0 {
+					fmt.Println("dcard len : %d", d.imageLength)
 				}
 
 				if !strings.Contains(urlValue.Url, "https") {
 					urlValue.Url = strings.Replace(urlValue.Url, "http", "https", -1)
 				}
 
-				dcardInfo, err := json.Marshal(DcardInfo{
+				dcardInfo, err := json.Marshal(model.DcardInfo{
 					ID:    value.ID,
 					Image: urlValue.Url,
 					Link:  fmt.Sprintf("https://www.dcard.tw/f/sex/p/%v-%v", value.ID, httpUrl.QueryEscape(value.Title)),

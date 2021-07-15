@@ -1,26 +1,30 @@
 package crawler
 
-import "sync"
+import (
+	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"sync"
+)
 
-type Type int
+type CrawlerType int
 
 const (
-	Beauty   Type = 1
-	DcardSex Type = 2
-	Joker    Type = 3
-	PornHub  Type = 4
+	Beauty CrawlerType = iota + 1
+	DcardSex
+	Joker
+	PornHub
 )
 
 type Crawler interface {
-	RunImage(url string)
+	RunCrawlerImage(url string)
+	GetImageLength() int32
 }
 
 var (
-	crawlerInstanceMap = map[Type]Crawler{}
+	crawlerInstanceMap = map[CrawlerType]Crawler{}
 	mu                 = sync.Mutex{}
 )
 
-func GetCrawlerByType(sourceType Type) (instance Crawler, err error) {
+func GetCrawlerByType(sourceType CrawlerType) (instance Crawler, err error) {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -40,7 +44,7 @@ func GetCrawlerByType(sourceType Type) (instance Crawler, err error) {
 
 }
 
-func createCrawlerBySourceType(sourceType Type) (crawler Crawler, err error) {
+func createCrawlerBySourceType(sourceType CrawlerType) (crawler Crawler, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -49,13 +53,13 @@ func createCrawlerBySourceType(sourceType Type) (crawler Crawler, err error) {
 
 	switch sourceType {
 	case Beauty:
-		crawler = beautyCrawler
+		crawler = NewBeautyCrawler(boltdb.DB())
 	case DcardSex:
-		crawler = dcardSex
+		crawler = NewDcardCrawler(boltdb.DB())
 	case Joker:
-		crawler = joker
+		crawler = NewJokerCrawler(boltdb.DB())
 	case PornHub:
-		crawler = pornHub
+		crawler = NewPornHubCrawler(boltdb.DB())
 	default:
 	}
 
