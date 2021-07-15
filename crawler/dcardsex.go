@@ -56,7 +56,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 		logrus.Errorf("Dcard NewRequest Error:%v", err)
 		return
 	}
-
+	
 	res, err := client.Do(req)
 	if err != nil {
 		logrus.Errorf("Dcard Do Error:%v", err)
