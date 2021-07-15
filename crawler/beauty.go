@@ -4,30 +4,45 @@ import (
 	"fmt"
 	"github.com/gocolly/colly"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"github.com/riceChuang/jbtkLineBot/config"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type BeautyCrawler struct {
 	ContentUrl chan string
 	ImageUrl   chan string
+	maxImageLen int32
+	imageLength int32
 	Stop       chan bool
 	db         *boltdb.Boltdb
 }
 
 var (
-	ImageLength = 0
-	maxImage    = 200
+	beautyCraw *BeautyCrawler
+	beautyCrawlerOnce = &sync.Once{}
 )
 
 func NewBeautyCrawler(db *boltdb.Boltdb) *BeautyCrawler {
-	b := &BeautyCrawler{
-		ContentUrl: make(chan string, 3000),
-		ImageUrl:   make(chan string, 3000),
-		Stop:       make(chan bool, 2),
-		db:         db,
+	cfg := config.GetConfig()
+	if beautyCraw != nil {
+		return beautyCraw
 	}
+	beautyCrawlerOnce.Do(func() {
+		beautyCraw = &BeautyCrawler{
+			ContentUrl: make(chan string, 3000),
+			ImageUrl:   make(chan string, 3000),
+			Stop:       make(chan bool, 2),
+			maxImageLen:  cfg.MaxBeautyLen,
+			db:         db,
+		}
+		beautyCraw.Initialize()
+	})
+	return beautyCraw
+}
 
+func (b *BeautyCrawler) Initialize() {
 	for i := 0; i < 1; i++ {
 		go b.RunContentPage()
 	}
@@ -51,12 +66,14 @@ func NewBeautyCrawler(db *boltdb.Boltdb) *BeautyCrawler {
 			}
 		}
 	}()
-
-	return b
 }
 
-func (b *BeautyCrawler) RunImage(url string) {
-	b.GetMainPage(url)
+func (b *BeautyCrawler) RunCrawlerImage(url string) {
+	go b.GetMainPage(url)
+}
+
+func (b *BeautyCrawler) GetImageLength() int32 {
+	return b.imageLength
 }
 
 func (b *BeautyCrawler) GetMainPage(url string) {
@@ -70,7 +87,7 @@ func (b *BeautyCrawler) GetMainPage(url string) {
 		link := e.Attr("href")
 		// Print link
 
-		if strings.Contains(e.Text, "上頁") && ImageLength < maxImage {
+		if strings.Contains(e.Text, "上頁") && b.imageLength < b.maxImageLen {
 			//fmt.Printf("Link found: %q -> %s\n", e.Text, link)
 			mainPage.Visit(e.Request.AbsoluteURL(link))
 		} else {
@@ -97,7 +114,7 @@ func (b *BeautyCrawler) GetMainPage(url string) {
 func (b *BeautyCrawler) RunContentPage() {
 
 	for url := range b.ContentUrl {
-		if ImageLength > maxImage {
+		if b.imageLength > b.maxImageLen {
 			b.Stop <- true
 			break
 		}
@@ -135,7 +152,7 @@ func (b *BeautyCrawler) RunContentPage() {
 func (b *BeautyCrawler) RunImagePage() {
 
 	for url := range b.ImageUrl {
-		if ImageLength > maxImage {
+		if b.imageLength > b.maxImageLen {
 			b.Stop <- true
 			break
 		}
@@ -147,11 +164,11 @@ func (b *BeautyCrawler) RunImagePage() {
 		imagePage.OnHTML("img", func(e *colly.HTMLElement) {
 			link := e.Attr("src")
 			if strings.Contains(link, ".jpg") && strings.Contains(link, "https") {
-				ImageLength++
-				beautyKey := fmt.Sprintf("beauty-%d", ImageLength)
+				b.imageLength++
+				beautyKey := fmt.Sprintf("beauty-%d", b.imageLength)
 				b.db.Insert(beautyKey, link)
-				if ImageLength%50 == 0 {
-					fmt.Println("now beauty images len : %d", ImageLength)
+				if b.imageLength%50 == 0 {
+					fmt.Println("now beauty images len : %d", b.imageLength)
 				}
 
 			}

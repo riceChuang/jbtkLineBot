@@ -4,67 +4,82 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/riceChuang/jbtkLineBot/boltdb"
+	"github.com/riceChuang/jbtkLineBot/config"
+	"github.com/riceChuang/jbtkLineBot/model"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	httpUrl "net/url"
 	"strconv"
 	"strings"
-	httpUrl "net/url"
+	"sync"
+)
+
+var (
+	dcardCraw        *DcardCrawler
+	dcardCrawlerOnce = &sync.Once{}
 )
 
 type DcardCrawler struct {
-	db *boltdb.Boltdb
+	db             *boltdb.Boltdb
+	imageLength    int32
+	maxImageLength int32
 }
 
-type Dcard struct {
-	ID        int              `json:"id"`
-	Media     []*dcardImageUrl `json:"media"`
-	Gender    string           `json:"gender"`
-	LikeCount int              `json:"likeCount"`
-	Title     string           `json:"title"`
-}
-
-type DcardInfo struct {
-	ID    int    `json:"id"`
-	Image string `json:"image"`
-	Link  string `json:"link"`
-	Title string `json:"title"`
-}
-
-type dcardImageUrl struct {
-	Url string `json:"url"`
-}
-
-var (
-	DcardImageLengh int
-)
-
-func NewDcrdCrawler(db *boltdb.Boltdb) *DcardCrawler {
-	b := &DcardCrawler{
-		db: db,
+func NewDcardCrawler(db *boltdb.Boltdb) *DcardCrawler {
+	if dcardCraw != nil {
+		return dcardCraw
 	}
-	return b
+	dcardCrawlerOnce.Do(func() {
+		cfg := config.GetConfig()
+		dcardCraw = &DcardCrawler{
+			db:             db,
+			maxImageLength: cfg.MaxDcardLen,
+		}
+	})
+	return dcardCraw
 }
 
-func (d *DcardCrawler) RunImage(url string) {
-	d.GetDcarUrl(url)
+func (d *DcardCrawler) RunCrawlerImage(url string) {
+	go d.GetDcarUrl(url)
+}
+
+func (d *DcardCrawler) GetImageLength() int32 {
+	return d.imageLength
 }
 
 func (d *DcardCrawler) GetDcarUrl(url string) {
-	resp, err := http.Get(url)
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-
-	result := []*Dcard{}
-	err = json.Unmarshal(body, &result)
-	fmt.Print(string(body))
+	client := &http.Client {}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		fmt.Print(err)
+		logrus.Errorf("Dcard NewRequest Error:%v", err)
+		return
 	}
+	
+	res, err := client.Do(req)
+	if err != nil {
+		logrus.Errorf("Dcard Do Error:%v", err)
+		return
+	}
+	defer res.Body.Close()
+	logrus.Println("resp:%+v",res)
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		logrus.Errorf("Dcard ReadAll Error:%v", err)
+		return
+	}
+	logrus.Printf("this is Body :%s",string(body))
+	result := []*model.Dcard{}
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		logrus.Errorf("Dcard parse Error:%v", err)
+	}
+
 
 	for i, value := range result {
 
-		if DcardImageLengh > 600 {
+		if d.imageLength > d.maxImageLength {
 			return
 		}
 
@@ -74,23 +89,23 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 
 		if value.Gender == "F" && value.LikeCount >= 50 {
 			for _, urlValue := range value.Media {
-				DcardImageLengh++
-				beautyKey := fmt.Sprintf("dcard-%d", DcardImageLengh)
-				if DcardImageLengh%50 == 0 {
-					fmt.Println("dcard len : %d", DcardImageLengh)
+				d.imageLength++
+				beautyKey := fmt.Sprintf("dcard-%d", d.imageLength)
+				if d.imageLength%50 == 0 {
+					logrus.Println("dcard len : %d", d.imageLength)
 				}
 
 				if !strings.Contains(urlValue.Url, "https") {
 					urlValue.Url = strings.Replace(urlValue.Url, "http", "https", -1)
 				}
 
-				dcardInfo, err := json.Marshal(DcardInfo{
+				dcardInfo, err := json.Marshal(model.DcardInfo{
 					ID:    value.ID,
 					Image: urlValue.Url,
 					Link:  fmt.Sprintf("https://www.dcard.tw/f/sex/p/%v-%v", value.ID, httpUrl.QueryEscape(value.Title)),
 				})
 				if err != nil {
-					fmt.Println(err)
+					logrus.Errorf("dcard error:%v", err)
 				}
 				d.db.Insert(beautyKey, string(dcardInfo))
 			}
