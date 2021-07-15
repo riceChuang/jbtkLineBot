@@ -6,6 +6,7 @@ import (
 	"github.com/riceChuang/jbtkLineBot/boltdb"
 	"github.com/riceChuang/jbtkLineBot/config"
 	"github.com/riceChuang/jbtkLineBot/model"
+	"github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	httpUrl "net/url"
@@ -14,19 +15,16 @@ import (
 	"sync"
 )
 
-
-
 var (
-	dcardCraw *DcardCrawler
+	dcardCraw        *DcardCrawler
 	dcardCrawlerOnce = &sync.Once{}
 )
 
 type DcardCrawler struct {
-	db *boltdb.Boltdb
-	imageLength int32
+	db             *boltdb.Boltdb
+	imageLength    int32
 	maxImageLength int32
 }
-
 
 func NewDcardCrawler(db *boltdb.Boltdb) *DcardCrawler {
 	if dcardCraw != nil {
@@ -35,7 +33,7 @@ func NewDcardCrawler(db *boltdb.Boltdb) *DcardCrawler {
 	dcardCrawlerOnce.Do(func() {
 		cfg := config.GetConfig()
 		dcardCraw = &DcardCrawler{
-			db: db,
+			db:             db,
 			maxImageLength: cfg.MaxDcardLen,
 		}
 	})
@@ -43,7 +41,7 @@ func NewDcardCrawler(db *boltdb.Boltdb) *DcardCrawler {
 }
 
 func (d *DcardCrawler) RunCrawlerImage(url string) {
-	go  d.GetDcarUrl(url)
+	go d.GetDcarUrl(url)
 }
 
 func (d *DcardCrawler) GetImageLength() int32 {
@@ -55,12 +53,14 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-
+	if err != nil {
+		logrus.Errorf("Dcard ReadAll Error:%v", err)
+	}
 	result := []*model.Dcard{}
 	err = json.Unmarshal(body, &result)
 	fmt.Print(string(body))
 	if err != nil {
-		fmt.Print(err)
+		logrus.Errorf("Dcard parse Error:%v", err)
 	}
 
 	for i, value := range result {
@@ -78,7 +78,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 				d.imageLength++
 				beautyKey := fmt.Sprintf("dcard-%d", d.imageLength)
 				if d.imageLength%50 == 0 {
-					fmt.Println("dcard len : %d", d.imageLength)
+					logrus.Println("dcard len : %d", d.imageLength)
 				}
 
 				if !strings.Contains(urlValue.Url, "https") {
@@ -91,7 +91,7 @@ func (d *DcardCrawler) GetDcarUrl(url string) {
 					Link:  fmt.Sprintf("https://www.dcard.tw/f/sex/p/%v-%v", value.ID, httpUrl.QueryEscape(value.Title)),
 				})
 				if err != nil {
-					fmt.Println(err)
+					logrus.Errorf("dcard error:%v", err)
 				}
 				d.db.Insert(beautyKey, string(dcardInfo))
 			}
