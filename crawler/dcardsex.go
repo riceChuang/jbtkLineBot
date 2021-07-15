@@ -49,19 +49,32 @@ func (d *DcardCrawler) GetImageLength() int32 {
 }
 
 func (d *DcardCrawler) GetDcarUrl(url string) {
-	resp, err := http.Get(url)
 
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	client := &http.Client {}
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		logrus.Errorf("Dcard NewRequest Error:%v", err)
+		return
+	}
+
+	res, err := client.Do(req)
+	if err != nil {
+		logrus.Errorf("Dcard Do Error:%v", err)
+		return
+	}
+	defer res.Body.Close()
+	logrus.Println("resp:%+v",res)
+	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		logrus.Errorf("Dcard ReadAll Error:%v", err)
+		return
 	}
+	logrus.Printf("this is Body :%s",string(body))
 	result := []*model.Dcard{}
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		logrus.Errorf("Dcard parse Error:%v", err)
 	}
-	logrus.Info(string(body))
 
 
 	for i, value := range result {
