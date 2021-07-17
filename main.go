@@ -20,7 +20,7 @@ func main() {
 	config := config.GetConfig()
 	crawlerTypesMap := map[crawler.CrawlerType]string{
 		crawler.DcardSex: config.DcardUrl,
-		crawler.Beauty:   config.BeautyUrl,
+		//crawler.Beauty:   config.BeautyUrl,
 	}
 
 	for crawlerType, url := range crawlerTypesMap {

@@ -14,6 +14,7 @@ require (
 	github.com/line/line-bot-sdk-go v4.3.0+incompatible
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
+	github.com/robertkrimen/otto v0.0.0-20210614181706-373ff5438452
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.2.2 // indirect
@@ -21,4 +22,5 @@ require (
 	github.com/spf13/viper v1.4.0
 	github.com/temoto/robotstxt v0.0.0-20180810133444-97ee4a9ee6ea // indirect
 	google.golang.org/appengine v1.4.0 // indirect
+	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
